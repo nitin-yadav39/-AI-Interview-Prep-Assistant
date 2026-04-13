@@ -1,4 +1,4 @@
-# AI Interview Practice Tool
+# AI Interview Prep Assistant
 
 A full-stack application for practicing job interviews with AI using voice interaction. Built with React, Node.js, Express, MongoDB, Socket.IO, and Google Gemini AI.
 
