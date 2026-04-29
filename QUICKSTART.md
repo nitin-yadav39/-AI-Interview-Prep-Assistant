@@ -9,10 +9,10 @@ Before starting, make sure you have:
 - ✅ Node.js installed (v18+) - Check with: `node --version`
 - ✅ Google Chrome browser (for voice features)
 
-### 2. Get Your Gemini API Key
-1. Go to: https://makersuite.google.com/app/apikey
+### 2. Get Your OpenRouter API Key
+1. Go to: https://openrouter.ai/
 2. Click "Create API Key"
-3. Copy the key (starts with "AIza...")
+3. Copy the key (starts with "sk-or...")
 
 ### 3. Setup Backend
 ```bash
@@ -23,7 +23,7 @@ cd backend
 npm install
 
 # Edit .env file
-# Replace "your_gemini_api_key_here" with your actual API key
+# Replace "sk-or-your_actual_key_here" with your actual OpenRouter API key
 ```
 
 ### 4. Setup Frontend

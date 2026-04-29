@@ -4,7 +4,6 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { Server } = require('socket.io');
 const http = require('http');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const jwt = require('jsonwebtoken');
 const auth = require('./middleware/auth');
 
@@ -12,6 +11,59 @@ const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
+
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY?.trim();
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+if (!OPENROUTER_API_KEY ||
+    OPENROUTER_API_KEY === '' ||
+    !OPENROUTER_API_KEY.startsWith('sk-or-')) {
+  console.error('❌ Invalid or missing OPENROUTER_API_KEY.');
+  console.error('   Set OPENROUTER_API_KEY in backend/.env to a valid OpenRouter key (sk-or-...).');
+  process.exit(1);
+}
+
+async function generateOpenRouterResponse({ messages, model = 'gpt-4o-mini', temperature = 0.7, max_tokens = 1000 }) {
+  const response = await fetch(OPENROUTER_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      Authorization: 'Bearer ' + OPENROUTER_API_KEY,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      max_tokens,
+    }),
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  const textBody = await response.text();
+
+  if (!response.ok) {
+    let errorDetails = textBody;
+    try {
+      const json = JSON.parse(textBody);
+      errorDetails = json?.error?.message || json?.detail || JSON.stringify(json);
+    } catch (_) {}
+    throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} ${errorDetails}`);
+  }
+
+  if (contentType.includes('text/html')) {
+    throw new Error(`OpenRouter API returned HTML instead of JSON. Check the endpoint URL and key. Response snippet: ${textBody.slice(0, 300)}`);
+  }
+
+  const json = JSON.parse(textBody);
+  const choice = json?.choices?.[0];
+  let text = choice?.message?.content || choice?.text || json?.output_text || '';
+  if (typeof text === 'object') {
+    text = JSON.stringify(text);
+  }
+
+  return String(text).trim();
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -29,9 +81,6 @@ app.use(express.json());
 // Models
 const User = require('./models/User');
 const Interview = require('./models/Interview');
-
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -190,14 +239,11 @@ app.post('/api/interview/report/:interviewId', auth, async (req, res) => {
       return res.status(404).json({ message: 'Interview not found' });
     }
 
-    // Analyze the interview using Gemini AI
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    
-    // Prepare the conversation transcript
+    // Analyze the interview using OpenRouter
     const transcript = interview.chatTranscript
       .map(chat => `${chat.role.toUpperCase()}: ${chat.message}`)
       .join('\n\n');
-    
+
     const prompt = `You are an expert interview analyst. Analyze the following job interview transcript and provide a detailed performance report.
 
 Interview Details:
@@ -226,8 +272,21 @@ Provide a comprehensive analysis in the following JSON format (respond ONLY with
   "performanceLevel": "<Excellent/Good/Average/Needs Improvement>"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const aiResponse = result.response.text();
+    const aiResponse = await generateOpenRouterResponse({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert interview analyst. Provide only valid JSON output with no additional text.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        }
+      ],
+      temperature: 0.5,
+      max_tokens: 900
+    });
     
     // Parse the JSON response
     let reportData;
@@ -312,17 +371,28 @@ io.on('connection', (socket) => {
       // Get interview context
       const interview = await Interview.findById(interviewId);
       
-      // Generate AI response using Gemini
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      
+      // Generate AI response using OpenRouter
       const prompt = `You are an AI interviewer conducting a ${interview.difficulty} level interview for a ${interview.position} position for someone with ${interview.experience} experience.
       
 User said: "${message}"
 
 Respond professionally as an interviewer. Ask relevant technical or behavioral questions based on the position. Keep responses concise and conversational.`;
       
-      const result = await model.generateContent(prompt);
-      const aiResponse = result.response.text();
+      const aiResponse = await generateOpenRouterResponse({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI interviewer. Ask follow-up questions, keep the tone professional, and stay concise.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      });
       
       // Save AI response to database
       await Interview.findByIdAndUpdate(interviewId, {
@@ -339,8 +409,8 @@ Respond professionally as an interviewer. Ask relevant technical or behavioral q
       socket.emit('ai-response', { message: aiResponse });
       
     } catch (error) {
-      console.error('Error:', error);
-      socket.emit('error', { message: 'Something went wrong' });
+      console.error('AI response error:', error);
+      socket.emit('ai-error', { message: error?.message || 'AI service unavailable. Please try again.' });
     }
   });
   

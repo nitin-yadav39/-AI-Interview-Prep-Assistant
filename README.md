@@ -1,6 +1,6 @@
 # AI Interview Practice Tool
 
-A full-stack application for practicing job interviews with AI using voice interaction. Built with React, Node.js, Express, MongoDB, Socket.IO, and Google Gemini AI.
+A full-stack application for practicing job interviews with AI using voice interaction. Built with React, Node.js, Express, MongoDB, Socket.IO, and OpenRouter AI.
 
 ![AI Interview Practice](https://img.shields.io/badge/AI-Interview-blue)
 ![React](https://img.shields.io/badge/React-18.2-61dafb)
@@ -11,7 +11,7 @@ A full-stack application for practicing job interviews with AI using voice inter
 
 - **Voice-Based Interviews**: Speak your answers and hear AI responses
 - **Real-time Communication**: Socket.IO for instant AI responses
-- **AI-Powered Questions**: Google Gemini generates contextual interview questions
+- **AI-Powered Questions**: OpenRouter AI generates contextual interview questions
 - **User Authentication**: Signup/Login system
 - **Interview Customization**: Choose position, experience level, and difficulty
 - **Chat Transcript**: All interviews are saved to database
@@ -29,7 +29,7 @@ A full-stack application for practicing job interviews with AI using voice inter
 - Node.js + Express
 - MongoDB + Mongoose
 - Socket.IO
-- Google Generative AI (Gemini)
+- OpenRouter AI
 - CORS
 
 ## 📋 Prerequisites
@@ -46,8 +46,8 @@ Before you begin, ensure you have the following installed:
    - **Option B**: MongoDB Community Edition (Local)
      - Download: https://www.mongodb.com/try/download/community
 
-3. **Google Gemini API Key**
-   - Get your free API key: https://makersuite.google.com/app/apikey
+3. **OpenRouter API Key**
+   - Get your API key: https://openrouter.ai/
    - Click "Create API Key"
 
 4. **Code Editor** (Recommended)
@@ -73,7 +73,7 @@ npm install
 
 # Configure environment variables
 # Edit the .env file and add your credentials:
-# - Replace "your_gemini_api_key_here" with your actual Gemini API key
+# - Replace "sk-or-your_actual_key_here" with your actual OpenRouter API key
 # - If using MongoDB Atlas, replace MONGODB_URI with your connection string
 ```
 
@@ -84,7 +84,7 @@ MONGODB_URI=mongodb://localhost:27017/ai-interview
 # OR for MongoDB Atlas:
 # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ai-interview
 
-GEMINI_API_KEY=AIzaSyD...your_actual_key_here
+OPENROUTER_API_KEY=sk-or-your_actual_key_here
 ```
 
 ### Step 3: Setup Frontend
@@ -214,9 +214,9 @@ ai-interview-app/
 - Check microphone permissions in browser settings
 - Ensure you're using HTTPS or localhost
 
-### Issue: Gemini API Error
+### Issue: OpenRouter API Error
 **Solution**:
-- Verify your API key is correct in `.env`
+- Verify your OpenRouter API key is correct in `.env`
 - Check API key has proper permissions
 - Ensure you haven't exceeded rate limits
 
@@ -302,7 +302,7 @@ If you encounter any issues:
 - [Node.js Documentation](https://nodejs.org/docs/)
 - [MongoDB Documentation](https://docs.mongodb.com/)
 - [Socket.IO Documentation](https://socket.io/docs/)
-- [Google Gemini API](https://ai.google.dev/docs)
+- [OpenRouter API](https://openrouter.ai/)
 
 ---
 

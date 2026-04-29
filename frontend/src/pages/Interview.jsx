@@ -29,6 +29,11 @@ function Interview() {
       speakText(data.message);
     });
 
+    socketRef.current.on('ai-error', (data) => {
+      setMessages(prev => [...prev, { role: 'ai', text: data.message }]);
+      console.error('AI service error:', data.message);
+    });
+
     if ('webkitSpeechRecognition' in window) {
       recognitionRef.current = new window.webkitSpeechRecognition();
       recognitionRef.current.continuous = false;
