@@ -11,7 +11,7 @@ function InterviewHistory() {
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (!userData) {
-      navigate('/');
+      navigate('/login');
       return;
     }
     setUser(userData);

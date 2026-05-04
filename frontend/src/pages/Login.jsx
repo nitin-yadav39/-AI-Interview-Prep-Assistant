@@ -26,90 +26,70 @@ function Login() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>AI Interview Practice</h1>
-        <h2 style={styles.subtitle}>Login</h2>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            style={styles.input}
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            style={styles.input}
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <button type="submit" style={styles.button}>Login</button>
-        </form>
-        <p style={styles.link}>
-          Don't have an account? <Link to="/signup">Sign Up</Link>
-        </p>
+    <div className="page">
+      <div className="card authShell">
+        <aside className="authAside">
+          <span className="badge">AI Interviewer</span>
+          <div className="authBrand">
+            <h1 className="title">Practice interviews with confidence</h1>
+            <p>
+              Set your role, experience, and difficulty — and start a voice-based AI interview
+              session in minutes.
+            </p>
+          </div>
+        </aside>
+
+        <main className="authMain">
+          <div className="stack" style={{ gap: 10 }}>
+            <h2>Login</h2>
+            <div className="muted" style={{ fontSize: 14 }}>
+              Welcome back. Please enter your details.
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="stack" style={{ marginTop: 18 }}>
+            <div>
+              <label className="label" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                className="field"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                className="field"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary btn-wide">
+              Login
+            </button>
+          </form>
+
+          <div className="authFooter">
+            Don&apos;t have an account? <Link to="/signup">Sign Up</Link>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    backgroundColor: '#f0f0f0'
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: '40px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    width: '400px'
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: '10px',
-    color: '#2196F3',
-    fontSize: '28px'
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: '30px',
-    color: '#333',
-    fontSize: '22px'
-  },
-  input: {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '15px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
-    fontSize: '16px',
-    boxSizing: 'border-box'
-  },
-  button: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#2196F3',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    marginTop: '10px'
-  },
-  link: {
-    textAlign: 'center',
-    marginTop: '20px'
-  }
-};
 
 export default Login;

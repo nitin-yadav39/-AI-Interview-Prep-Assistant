@@ -20,115 +20,110 @@ function Signup() {
     try {
       const response = await api.post('/signup', formData);
       alert(response.data.message);
-      navigate('/');
+      navigate('/login');
     } catch (error) {
       alert(error.response?.data?.message || 'Error signing up');
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>AI Interview Practice</h1>
-        <h2 style={styles.subtitle}>Sign Up</h2>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="firstName"
-            placeholder="First Name"
-            style={styles.input}
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="lastName"
-            placeholder="Last Name"
-            style={styles.input}
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            style={styles.input}
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            style={styles.input}
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <button type="submit" style={styles.button}>Sign Up</button>
-        </form>
-        <p style={styles.link}>
-          Already have an account? <Link to="/">Login</Link>
-        </p>
+    <div className="page">
+      <div className="card authShell">
+        <aside className="authAside">
+          <span className="badge">AI Interviewer</span>
+          <div className="authBrand">
+            <h1 className="title">Create your profile</h1>
+            <p>
+              Your details help personalize the dashboard and keep a history of your interview
+              sessions.
+            </p>
+          </div>
+        </aside>
+
+        <main className="authMain">
+          <div className="stack" style={{ gap: 10 }}>
+            <h2>Sign up</h2>
+            <div className="muted" style={{ fontSize: 14 }}>
+              It only takes a minute.
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="stack" style={{ marginTop: 18 }}>
+            <div className="row" style={{ alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <label className="label" htmlFor="firstName">First name</label>
+                <input
+                  id="firstName"
+                  type="text"
+                  name="firstName"
+                  placeholder="Nitin"
+                  className="field"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  autoComplete="given-name"
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label className="label" htmlFor="lastName">Last name</label>
+                <input
+                  id="lastName"
+                  type="text"
+                  name="lastName"
+                  placeholder="Kumar"
+                  className="field"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  autoComplete="family-name"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label" htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                className="field"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            <div>
+              <label className="label" htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Create a strong password"
+                className="field"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+              />
+              <div className="hint">Use at least 8 characters for best security.</div>
+            </div>
+
+            <button type="submit" className="btn btn-success btn-wide">
+              Sign Up
+            </button>
+          </form>
+
+          <div className="authFooter">
+            Already have an account? <Link to="/login">Login</Link>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    backgroundColor: '#f0f0f0'
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: '40px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    width: '400px'
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: '10px',
-    color: '#2196F3',
-    fontSize: '28px'
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: '30px',
-    color: '#333',
-    fontSize: '22px'
-  },
-  input: {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '15px',
-    border: '1px solid #ddd',
-    borderRadius: '5px',
-    fontSize: '16px',
-    boxSizing: 'border-box'
-  },
-  button: {
-    width: '100%',
-    padding: '12px',
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    marginTop: '10px'
-  },
-  link: {
-    textAlign: 'center',
-    marginTop: '20px'
-  }
-};
 
 export default Signup;
