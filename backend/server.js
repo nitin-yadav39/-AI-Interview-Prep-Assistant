@@ -86,6 +86,12 @@ const User = require('./models/User');
 const Interview = require('./models/Interview');
 
 // MongoDB Connection
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI is not defined in the environment variables.');
+  console.error('   Please add MONGODB_URI to your environment variables on Render.');
+  process.exit(1);
+}
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => {
