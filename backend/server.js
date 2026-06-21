@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { Server } = require('socket.io');
@@ -81,23 +80,9 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// Models
-const User = require('./models/User');
-const Interview = require('./models/Interview');
-
-// MongoDB Connection
-if (!process.env.MONGODB_URI) {
-  console.error('❌ MONGODB_URI is not defined in the environment variables.');
-  console.error('   Please add MONGODB_URI to your environment variables on Render.');
-  process.exit(1);
-}
-
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => {
-    console.error('❌ MongoDB Error:', err);
-    process.exit(1);
-  });
+// Supabase Client
+const { supabase, formatUser, formatInterview } = require('./supabaseClient');
+console.log('🔌 Supabase initialized');
 
 // ============= REST APIs =============
 
@@ -107,28 +92,41 @@ app.post('/api/signup', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
     
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (checkError) throw checkError;
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
     
     // Create new user
-    const user = new User({ firstName, lastName, email, password });
-    await user.save();
+    const { data: user, error: insertError } = await supabase
+      .from('users')
+      .insert({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        password
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    
+    const formattedUser = formatUser(user);
     
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'ai_interviewer_super_secret_key', { expiresIn: '7d' });
+    const token = jwt.sign({ id: formattedUser.id }, process.env.JWT_SECRET || 'ai_interviewer_super_secret_key', { expiresIn: '7d' });
     
     res.status(201).json({ 
       message: 'User created successfully',
-      userId: user._id,
+      userId: formattedUser.id,
       token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
-      }
+      user: formattedUser
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -140,23 +138,27 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const user = await User.findOne({ email, password });
+    const { data: user, error: loginError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('password', password)
+      .maybeSingle();
+
+    if (loginError) throw loginError;
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
+    const formattedUser = formatUser(user);
+    
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'ai_interviewer_super_secret_key', { expiresIn: '7d' });
+    const token = jwt.sign({ id: formattedUser.id }, process.env.JWT_SECRET || 'ai_interviewer_super_secret_key', { expiresIn: '7d' });
     
     res.json({ 
       message: 'Login successful',
       token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
-      }
+      user: formattedUser
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -166,11 +168,17 @@ app.post('/api/login', async (req, res) => {
 // 3. Get User Details API
 app.get('/api/user/:userId', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).select('-password');
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email, created_at, updated_at')
+      .eq('id', req.params.userId)
+      .maybeSingle();
+
+    if (userError) throw userError;
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    res.json(formatUser(user));
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -181,20 +189,24 @@ app.post('/api/interview/start', auth, async (req, res) => {
   try {
     const { userId, position, experience, difficulty } = req.body;
     
-    const interview = new Interview({
-      userId,
-      position,
-      experience,
-      difficulty,
-      isStart: true,
-      chatTranscript: []
-    });
-    
-    await interview.save();
+    const { data: interview, error: startError } = await supabase
+      .from('interviews')
+      .insert({
+        user_id: userId,
+        position,
+        experience,
+        difficulty,
+        is_start: true,
+        chat_transcript: []
+      })
+      .select()
+      .single();
+
+    if (startError) throw startError;
     
     res.status(201).json({ 
       message: 'Interview started',
-      interviewId: interview._id 
+      interviewId: interview.id 
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -204,19 +216,21 @@ app.post('/api/interview/start', auth, async (req, res) => {
 // 5. Stop Interview API
 app.post('/api/interview/stop/:interviewId', auth, async (req, res) => {
   try {
-    const interview = await Interview.findByIdAndUpdate(
-      req.params.interviewId,
-      { isStart: false },
-      { new: true }
-    );
+    const { data: interview, error: stopError } = await supabase
+      .from('interviews')
+      .update({ is_start: false })
+      .eq('id', req.params.interviewId)
+      .select()
+      .single();
     
+    if (stopError) throw stopError;
     if (!interview) {
       return res.status(404).json({ message: 'Interview not found' });
     }
     
     res.json({ 
       message: 'Interview stopped',
-      interview 
+      interview: formatInterview(interview)
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -226,13 +240,20 @@ app.post('/api/interview/stop/:interviewId', auth, async (req, res) => {
 // 6. Get User Interviews API
 app.get('/api/interviews/user/:userId', auth, async (req, res) => {
   try {
-    const interviews = await Interview.find({ userId: req.params.userId })
-      .sort({ createdAt: -1 }); // Most recent first
+    const { data: interviews, error: listError } = await supabase
+      .from('interviews')
+      .select('*')
+      .eq('user_id', req.params.userId)
+      .order('created_at', { ascending: false });
+    
+    if (listError) throw listError;
+    
+    const formattedInterviews = (interviews || []).map(formatInterview);
     
     res.json({ 
       message: 'Interviews retrieved successfully',
-      count: interviews.length,
-      interviews 
+      count: formattedInterviews.length,
+      interviews: formattedInterviews
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -242,23 +263,30 @@ app.get('/api/interviews/user/:userId', auth, async (req, res) => {
 // 7. Generate Interview Report API
 app.post('/api/interview/report/:interviewId', auth, async (req, res) => {
   try {
-    const interview = await Interview.findById(req.params.interviewId);
+    const { data: interview, error: fetchError } = await supabase
+      .from('interviews')
+      .select('*')
+      .eq('id', req.params.interviewId)
+      .maybeSingle();
     
+    if (fetchError) throw fetchError;
     if (!interview) {
       return res.status(404).json({ message: 'Interview not found' });
     }
 
+    const formattedInterview = formatInterview(interview);
+
     // Analyze the interview using OpenRouter
-    const transcript = interview.chatTranscript
+    const transcript = formattedInterview.chatTranscript
       .map(chat => `${chat.role.toUpperCase()}: ${chat.message}`)
       .join('\n\n');
 
     const prompt = `You are an expert interview analyst. Analyze the following job interview transcript and provide a detailed performance report.
 
 Interview Details:
-- Position: ${interview.position}
-- Experience Level: ${interview.experience}
-- Difficulty: ${interview.difficulty}
+- Position: ${formattedInterview.position}
+- Experience Level: ${formattedInterview.experience}
+- Difficulty: ${formattedInterview.difficulty}
 
 Transcript:
 ${transcript}
@@ -315,8 +343,8 @@ Provide a comprehensive analysis in the following JSON format (respond ONLY with
         problemSolvingScore: 70,
         detailedFeedback: "The interview was conducted successfully. Continue practicing to improve your skills.",
         recommendations: ["Practice more technical questions", "Improve response clarity", "Research the company thoroughly"],
-        questionsAsked: interview.chatTranscript.filter(c => c.role === 'ai').length,
-        answersGiven: interview.chatTranscript.filter(c => c.role === 'user').length,
+        questionsAsked: formattedInterview.chatTranscript.filter(c => c.role === 'ai').length,
+        answersGiven: formattedInterview.chatTranscript.filter(c => c.role === 'user').length,
         averageResponseLength: "medium",
         interviewDuration: "15-20 minutes",
         performanceLevel: "Good"
@@ -325,11 +353,11 @@ Provide a comprehensive analysis in the following JSON format (respond ONLY with
     
     // Add interview details to the report
     const fullReport = {
-      interviewId: interview._id,
-      position: interview.position,
-      experience: interview.experience,
-      difficulty: interview.difficulty,
-      interviewDate: interview.createdAt,
+      interviewId: formattedInterview.id,
+      position: formattedInterview.position,
+      experience: formattedInterview.experience,
+      difficulty: formattedInterview.difficulty,
+      interviewDate: formattedInterview.createdAt,
       ...reportData
     };
     
@@ -355,8 +383,19 @@ io.on('connection', (socket) => {
     console.log(`User joined interview: ${interviewId}`);
     
     // Send initial greeting
-    const interview = await Interview.findById(interviewId);
-    const greeting = `Hello! I'm your AI interviewer. You're interviewing for the ${interview.position} position. Let me introduce myself and we'll begin with some questions. Are you ready?`;
+    const { data: rawInterview, error } = await supabase
+      .from('interviews')
+      .select('*')
+      .eq('id', interviewId)
+      .maybeSingle();
+
+    if (error || !rawInterview) {
+      console.error('Error fetching interview context:', error);
+      socket.emit('ai-error', { message: 'Failed to join interview. Context not found.' });
+      return;
+    }
+
+    const greeting = `Hello! I'm your AI interviewer. You're interviewing for the ${rawInterview.position} position. Let me introduce myself and we'll begin with some questions. Are you ready?`;
     
     socket.emit('ai-response', { message: greeting });
   });
@@ -367,18 +406,30 @@ io.on('connection', (socket) => {
       const { interviewId, message } = data;
       
       // Save user message to database
-      await Interview.findByIdAndUpdate(interviewId, {
-        $push: {
-          chatTranscript: {
-            role: 'user',
-            message: message,
-            timestamp: new Date()
-          }
-        }
-      });
+      const { data: rawInterview, error: fetchErr } = await supabase
+        .from('interviews')
+        .select('*')
+        .eq('id', interviewId)
+        .maybeSingle();
+
+      if (fetchErr || !rawInterview) {
+        throw new Error(fetchErr?.message || 'Interview not found');
+      }
+
+      const interview = formatInterview(rawInterview);
       
-      // Get interview context
-      const interview = await Interview.findById(interviewId);
+      const userMessage = {
+        role: 'user',
+        message: message,
+        timestamp: new Date().toISOString()
+      };
+      
+      const updatedTranscriptUser = [...interview.chatTranscript, userMessage];
+
+      await supabase
+        .from('interviews')
+        .update({ chat_transcript: updatedTranscriptUser })
+        .eq('id', interviewId);
       
       // Generate AI response using OpenRouter
       const prompt = `You are an AI interviewer conducting a ${interview.difficulty} level interview for a ${interview.position} position for someone with ${interview.experience} experience.
@@ -404,15 +455,18 @@ Respond professionally as an interviewer. Ask relevant technical or behavioral q
       });
       
       // Save AI response to database
-      await Interview.findByIdAndUpdate(interviewId, {
-        $push: {
-          chatTranscript: {
-            role: 'ai',
-            message: aiResponse,
-            timestamp: new Date()
-          }
-        }
-      });
+      const aiMessage = {
+        role: 'ai',
+        message: aiResponse,
+        timestamp: new Date().toISOString()
+      };
+      
+      const updatedTranscriptAi = [...updatedTranscriptUser, aiMessage];
+
+      await supabase
+        .from('interviews')
+        .update({ chat_transcript: updatedTranscriptAi })
+        .eq('id', interviewId);
       
       // Send AI response back to user
       socket.emit('ai-response', { message: aiResponse });
@@ -445,3 +499,4 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+// Nodemon trigger comment

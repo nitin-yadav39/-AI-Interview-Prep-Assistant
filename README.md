@@ -1,11 +1,11 @@
 # AI Interview Prep Assistant
 
-A full-stack application for practicing job interviews with AI using voice interaction. Built with React, Node.js, Express, MongoDB, Socket.IO, and OpenRouter AI.
+A full-stack application for practicing job interviews with AI using voice interaction. Built with React, Node.js, Express, Supabase (PostgreSQL), Socket.IO, and OpenRouter AI.
 
 ![AI Interview Practice](https://img.shields.io/badge/AI-Interview-blue)
 ![React](https://img.shields.io/badge/React-18.2-61dafb)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green)
-![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-blue)
 
 ## 🎯 Features
 
@@ -27,7 +27,7 @@ A full-stack application for practicing job interviews with AI using voice inter
 
 ### Backend
 - Node.js + Express
-- MongoDB + Mongoose
+- Supabase (PostgreSQL) + `@supabase/supabase-js`
 - Socket.IO
 - OpenRouter AI
 - CORS
@@ -39,12 +39,9 @@ Before you begin, ensure you have the following installed:
 1. **Node.js** (v18 or higher)
    - Download: https://nodejs.org/
 
-2. **MongoDB** 
-   - **Option A (Recommended for Beginners)**: MongoDB Atlas (Cloud)
-     - Sign up: https://www.mongodb.com/cloud/atlas
-     - Create a free cluster
-   - **Option B**: MongoDB Community Edition (Local)
-     - Download: https://www.mongodb.com/try/download/community
+2. **Supabase Account**
+   - Create a free project: https://supabase.com/
+   - Go to **Project Settings > API** to find your **Project URL** and **`service_role` secret API key** (do not use the public `anon` key, as the backend needs admin bypass permissions).
 
 3. **OpenRouter API Key**
    - Get your API key: https://openrouter.ai/
@@ -62,7 +59,56 @@ Before you begin, ensure you have the following installed:
 cd ai-interview-app
 ```
 
-### Step 2: Setup Backend
+### Step 2: Setup Database Tables (Supabase)
+
+Before running the backend, create the required tables in your Supabase workspace:
+
+1. Go to your **Supabase Workspace > SQL Editor**.
+2. Click **New Query**.
+3. Copy, paste, and run the following SQL script:
+
+```sql
+-- Create users table
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Create interviews table
+CREATE TABLE IF NOT EXISTS public.interviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  position TEXT NOT NULL,
+  experience TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  is_start BOOLEAN NOT NULL DEFAULT false,
+  chat_transcript JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Create automated trigger to update updated_at timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = timezone('utc'::text, now());
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE
+  ON public.users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_interviews_updated_at BEFORE UPDATE
+  ON public.interviews FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+```
+
+### Step 3: Setup Backend
 
 ```bash
 # Navigate to backend folder
@@ -73,21 +119,21 @@ npm install
 
 # Configure environment variables
 # Edit the .env file and add your credentials:
-# - Replace "sk-or-your_actual_key_here" with your actual OpenRouter API key
-# - If using MongoDB Atlas, replace MONGODB_URI with your connection string
+# - Replace the SUPABASE_URL and SUPABASE_KEY placeholders with your actual Supabase URL & service_role key
+# - Replace the OpenRouter placeholder key with your actual key
 ```
 
-**Example .env configuration:**
+**Example `.env` configuration:**
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/ai-interview
-# OR for MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ai-interview
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_KEY=your-supabase-service-role-key
 
 OPENROUTER_API_KEY=sk-or-your_actual_key_here
+JWT_SECRET=ai_interviewer_super_secret_key
 ```
 
-### Step 3: Setup Frontend
+### Step 4: Setup Frontend
 
 ```bash
 # Open a new terminal
@@ -98,14 +144,9 @@ cd frontend
 npm install
 ```
 
-### Step 4: Start the Application
+### Step 5: Start the Application
 
-**Terminal 1 - Start MongoDB (if using local MongoDB):**
-```bash
-mongod
-```
-
-**Terminal 2 - Start Backend:**
+**Terminal 1 - Start Backend:**
 ```bash
 cd backend
 npm run dev
@@ -113,11 +154,11 @@ npm run dev
 
 You should see:
 ```
-✅ MongoDB Connected
+🔌 Supabase initialized
 🚀 Server running on port 5000
 ```
 
-**Terminal 3 - Start Frontend:**
+**Terminal 2 - Start Frontend:**
 ```bash
 cd frontend
 npm run dev
@@ -125,11 +166,11 @@ npm run dev
 
 You should see:
 ```
-  VITE v5.x.x  ready in xxx ms
+  VITE v8.x.x  ready in xxx ms
   ➜  Local:   http://localhost:5173/
 ```
 
-### Step 5: Access the Application
+### Step 6: Access the Application
 
 Open your browser and go to: **http://localhost:5173/**
 
@@ -157,10 +198,8 @@ Open your browser and go to: **http://localhost:5173/**
 ```
 ai-interview-app/
 ├── backend/
-│   ├── models/
-│   │   ├── User.js           # User schema
-│   │   └── Interview.js      # Interview schema
-│   ├── server.js             # Main server file
+│   ├── supabaseClient.js     # Supabase initialization & mapping helper
+│   ├── server.js             # Main server file (Express & Socket.IO APIs)
 │   ├── package.json          # Backend dependencies
 │   └── .env                  # Environment variables
 │
@@ -191,6 +230,8 @@ ai-interview-app/
 ### Interview
 - `POST /api/interview/start` - Start new interview
 - `POST /api/interview/stop/:interviewId` - Stop interview
+- `GET /api/interviews/user/:userId` - Get interview history of a user
+- `POST /api/interview/report/:interviewId` - Generate interview report
 
 ### Socket.IO Events
 - `join-interview` - Join interview room
@@ -202,11 +243,11 @@ ai-interview-app/
 ### Issue: Port Already in Use
 **Solution**: Change the PORT in `backend/.env` to 5001 or any available port
 
-### Issue: MongoDB Connection Error
+### Issue: Supabase Query/Connection Error
 **Solution**: 
-- Ensure MongoDB is running (if local)
-- Check your connection string (if Atlas)
-- Verify network connectivity
+- Double-check that your `SUPABASE_URL` and `SUPABASE_KEY` (use `service_role` key) are correctly populated in `backend/.env`.
+- Verify you have run the SQL script to create the `users` and `interviews` tables in your Supabase workspace SQL Editor.
+- Ensure the table names match (`users` and `interviews`).
 
 ### Issue: Voice Recognition Not Working
 **Solution**:
@@ -223,62 +264,17 @@ ai-interview-app/
 ### Issue: CORS Errors
 **Solution**:
 - Ensure backend server is running
-- Check that frontend is calling `https://ai-interview-prep-assistant.onrender.com`
 - Verify CORS settings in `server.js`
 
 ## 🔐 Security Notes
 
 ⚠️ **Important**: This is a beginner-friendly demo application. For production use, you should:
 
-- Hash passwords using bcrypt
-- Add JWT authentication
+- Hash passwords using bcrypt (stored plain text for demo compatibility)
 - Implement rate limiting
 - Add input validation and sanitization
 - Use environment-specific configurations
 - Add HTTPS in production
-
-## 🌟 Future Enhancements
-
-- [ ] Password hashing with bcrypt
-- [ ] JWT authentication
-- [ ] Interview history and analytics
-- [ ] Multiple interview types
-- [ ] Feedback and scoring system
-- [ ] Resume upload and analysis
-- [ ] Email notifications
-- [ ] Mobile app version
-
-## 📝 Database Schema
-
-### User Collection
-```javascript
-{
-  firstName: String,
-  lastName: String,
-  email: String (unique),
-  password: String,
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Interview Collection
-```javascript
-{
-  userId: ObjectId (ref: User),
-  position: String,
-  experience: String,
-  difficulty: String,
-  isStart: Boolean,
-  chatTranscript: [{
-    role: String,
-    message: String,
-    timestamp: Date
-  }],
-  createdAt: Date,
-  updatedAt: Date
-}
-```
 
 ## 🤝 Contributing
 
@@ -300,7 +296,7 @@ If you encounter any issues:
 
 - [React Documentation](https://react.dev/)
 - [Node.js Documentation](https://nodejs.org/docs/)
-- [MongoDB Documentation](https://docs.mongodb.com/)
+- [Supabase Documentation](https://supabase.com/docs)
 - [Socket.IO Documentation](https://socket.io/docs/)
 - [OpenRouter API](https://openrouter.ai/)
 
