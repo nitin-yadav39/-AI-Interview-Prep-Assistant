@@ -223,7 +223,7 @@ ai-interview-app/
 ### Issue: CORS Errors
 **Solution**:
 - Ensure backend server is running
-- Check that frontend is calling `http://localhost:5000`
+- Check that frontend is calling `https://ai-interview-prep-assistant.onrender.com`
 - Verify CORS settings in `server.js`
 
 ## 🔐 Security Notes

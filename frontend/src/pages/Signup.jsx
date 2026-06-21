@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 
 function Signup() {
   const navigate = useNavigate();
@@ -27,36 +28,35 @@ function Signup() {
   };
 
   return (
-    <div className="page">
-      <div className="card authShell">
-        <aside className="authAside">
+    <div className="page-center page-enter">
+      <div className="auth-shell">
+        <aside className="auth-aside">
           <span className="badge">AI Interviewer</span>
-          <div className="authBrand">
-            <h1 className="title">Create your profile</h1>
-            <p>
-              Your details help personalize the dashboard and keep a history of your interview
-              sessions.
-            </p>
-          </div>
+          <h1 className="auth-aside-title">Create your profile</h1>
+          <p className="text-caption text-muted mt-2">
+            Your details help personalize the dashboard and keep a history of your interview
+            sessions.
+          </p>
         </aside>
 
-        <main className="authMain">
-          <div className="stack" style={{ gap: 10 }}>
-            <h2>Sign up</h2>
-            <div className="muted" style={{ fontSize: 14 }}>
-              It only takes a minute.
+        <main className="auth-main">
+          <div className="row" style={{ marginBottom: 8 }}>
+            <div className="stack stack-sm">
+              <h2 className="text-heading">Sign up</h2>
+              <p className="text-caption text-muted">It only takes a minute.</p>
             </div>
+            <ThemeToggle />
           </div>
 
-          <form onSubmit={handleSubmit} className="stack" style={{ marginTop: 18 }}>
-            <div className="row" style={{ alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
+          <form onSubmit={handleSubmit} className="stack mt-2">
+            <div className="form-row">
+              <div className="field-group">
                 <label className="label" htmlFor="firstName">First name</label>
                 <input
                   id="firstName"
                   type="text"
                   name="firstName"
-                  placeholder="Nitin"
+                  placeholder="Alex"
                   className="field"
                   value={formData.firstName}
                   onChange={handleChange}
@@ -65,13 +65,13 @@ function Signup() {
                 />
               </div>
 
-              <div style={{ flex: 1 }}>
+              <div className="field-group">
                 <label className="label" htmlFor="lastName">Last name</label>
                 <input
                   id="lastName"
                   type="text"
                   name="lastName"
-                  placeholder="Kumar"
+                  placeholder="Smith"
                   className="field"
                   value={formData.lastName}
                   onChange={handleChange}
@@ -81,7 +81,7 @@ function Signup() {
               </div>
             </div>
 
-            <div>
+            <div className="field-group">
               <label className="label" htmlFor="email">Email</label>
               <input
                 id="email"
@@ -96,7 +96,7 @@ function Signup() {
               />
             </div>
 
-            <div>
+            <div className="field-group">
               <label className="label" htmlFor="password">Password</label>
               <input
                 id="password"
@@ -109,15 +109,15 @@ function Signup() {
                 required
                 autoComplete="new-password"
               />
-              <div className="hint">Use at least 8 characters for best security.</div>
+              <span className="hint">Use at least 8 characters for best security.</span>
             </div>
 
-            <button type="submit" className="btn btn-success btn-wide">
+            <button type="submit" className="btn btn-primary btn-wide btn-lg">
               Sign Up
             </button>
           </form>
 
-          <div className="authFooter">
+          <div className="auth-footer">
             Already have an account? <Link to="/login">Login</Link>
           </div>
         </main>

@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 
 function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,29 +24,28 @@ function Login() {
   };
 
   return (
-    <div className="page">
-      <div className="card authShell">
-        <aside className="authAside">
+    <div className="page-center page-enter">
+      <div className="auth-shell">
+        <aside className="auth-aside">
           <span className="badge">AI Interviewer</span>
-          <div className="authBrand">
-            <h1 className="title">Practice interviews with confidence</h1>
-            <p>
-              Set your role, experience, and difficulty — and start a voice-based AI interview
-              session in minutes.
-            </p>
-          </div>
+          <h1 className="auth-aside-title">Practice interviews with confidence</h1>
+          <p className="text-caption text-muted mt-2">
+            Set your role, experience, and difficulty — and start a voice-based AI interview
+            session in minutes.
+          </p>
         </aside>
 
-        <main className="authMain">
-          <div className="stack" style={{ gap: 10 }}>
-            <h2>Login</h2>
-            <div className="muted" style={{ fontSize: 14 }}>
-              Welcome back. Please enter your details.
+        <main className="auth-main">
+          <div className="row" style={{ marginBottom: 8 }}>
+            <div className="stack stack-sm">
+              <h2 className="text-heading">Login</h2>
+              <p className="text-caption text-muted">Welcome back. Please enter your details.</p>
             </div>
+            <ThemeToggle />
           </div>
 
-          <form onSubmit={handleSubmit} className="stack" style={{ marginTop: 18 }}>
-            <div>
+          <form onSubmit={handleSubmit} className="stack mt-2">
+            <div className="field-group">
               <label className="label" htmlFor="email">Email</label>
               <input
                 id="email"
@@ -63,7 +60,7 @@ function Login() {
               />
             </div>
 
-            <div>
+            <div className="field-group">
               <label className="label" htmlFor="password">Password</label>
               <input
                 id="password"
@@ -78,12 +75,12 @@ function Login() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary btn-wide">
+            <button type="submit" className="btn btn-primary btn-wide btn-lg">
               Login
             </button>
           </form>
 
-          <div className="authFooter">
+          <div className="auth-footer">
             Don&apos;t have an account? <Link to="/signup">Sign Up</Link>
           </div>
         </main>

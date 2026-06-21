@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import api from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 
 function Interview() {
   const { interviewId } = useParams();
@@ -12,12 +13,8 @@ function Interview() {
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   useEffect(() => {
@@ -31,7 +28,6 @@ function Interview() {
 
     socketRef.current.on('ai-error', (data) => {
       setMessages(prev => [...prev, { role: 'ai', text: data.message }]);
-      console.error('AI service error:', data.message);
     });
 
     if ('webkitSpeechRecognition' in window) {
@@ -86,173 +82,71 @@ function Interview() {
   };
 
   return (
-    <div style={styles.container}>
+    <div className="interview-page page-enter">
+      <header className="interview-header">
+        <div className="stack stack-sm">
+          <span className="text-heading">Interview in Progress</span>
+          <span className="text-caption text-muted">Speak clearly and take your time</span>
+        </div>
+        <div className="navbar-actions">
+          <button className="btn btn-danger btn-sm" onClick={handleStopInterview}>
+            End Interview
+          </button>
+          <ThemeToggle />
+        </div>
+      </header>
 
-      {/* TOP SECTION WITH DEMO INTERVIEWER */}
-      <div style={styles.interviewerSection}>
+      <div className="interview-avatar-section">
         <img
           src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png"
-          alt="interviewer"
-          style={styles.interviewerImage}
+          alt="AI Interviewer"
+          className="interview-avatar"
         />
-        <h2 style={styles.interviewerTitle}>Your AI Interviewer</h2>
-        <p style={styles.interviewerSubtitle}>I will ask questions and guide your interview. Speak clearly!</p>
-      </div>
-
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>🎤 Interview in Progress</h1>
-        <button style={styles.stopButton} onClick={handleStopInterview}>⛔ End Interview</button>
-      </div>
-
-      {/* CHAT WINDOW */}
-      <div style={styles.chatContainer}>
-        {messages.length === 0 && (
-          <div style={styles.welcomeMessage}>Waiting for the AI interviewer to begin...</div>
-        )}
-
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            style={{
-              ...styles.message,
-              alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              background: msg.role === 'user' ? '#4A90E2' : '#E3E7EA',
-              color: msg.role === 'user' ? 'white' : '#333'
-            }}
-          >
-            <div style={styles.messageSender}>
-              {msg.role === 'user' ? '👤 You' : '🤖 AI Interviewer'}
-            </div>
-            <div style={styles.messageText}>{msg.text}</div>
-          </div>
-        ))}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* RECORDING CONTROLS */}
-      <div style={styles.controls}>
-        <p style={styles.instruction}>
-          {isRecording ? '🎙️ Listening... speak now!' : 'Press the button and answer the question'}
+        <h2 className="text-heading mt-2">Your AI Interviewer</h2>
+        <p className="text-caption text-muted">
+          I will ask questions and guide your interview.
         </p>
-        <button
-          style={{
-            ...styles.recordButton,
-            backgroundColor: isRecording ? '#E53935' : '#43A047'
-          }}
-          onClick={startRecording}
-          disabled={isRecording}
-        >
-          {isRecording ? '🔴 Recording...' : '🎤 Start Speaking'}
-        </button>
+      </div>
+
+      <div className="chat-shell">
+        <div className="chat-scroll">
+          {messages.length === 0 && (
+            <div className="chat-empty">
+              <div className="skeleton skeleton-circle" style={{ width: 48, height: 48 }} />
+              <p className="text-body text-muted">Waiting for the AI interviewer to begin…</p>
+            </div>
+          )}
+
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`bubble ${msg.role === 'user' ? 'bubble-user' : 'bubble-ai'}`}
+            >
+              <div className="bubble-meta">
+                {msg.role === 'user' ? 'You' : 'AI Interviewer'}
+              </div>
+              <div className="bubble-text">{msg.text}</div>
+            </div>
+          ))}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="chat-controls text-center">
+          <p className="text-caption text-muted mb-2">
+            {isRecording ? 'Listening… speak now!' : 'Press the button and answer the question'}
+          </p>
+          <button
+            className={`btn btn-success record-btn${isRecording ? ' recording' : ''}`}
+            onClick={startRecording}
+            disabled={isRecording}
+          >
+            {isRecording ? 'Recording…' : 'Start Speaking'}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    background: '#F7F9FC',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-
-  interviewerSection: {
-    textAlign: 'center',
-    padding: '25px 10px 10px'
-  },
-  interviewerImage: {
-    width: '90px',
-    height: '90px',
-    borderRadius: '50%',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-  },
-  interviewerTitle: {
-    fontSize: '22px',
-    marginTop: '10px',
-    fontWeight: '600'
-  },
-  interviewerSubtitle: {
-    color: '#666',
-    marginTop: '5px'
-  },
-
-  header: {
-    background: '#2196F3',
-    color: 'white',
-    padding: '18px 25px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  headerTitle: {
-    margin: 0,
-    fontSize: '20px',
-    fontWeight: '600'
-  },
-  stopButton: {
-    background: '#E53935',
-    padding: '10px 16px',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    fontWeight: 'bold',
-    cursor: 'pointer'
-  },
-
-  chatContainer: {
-    flex: 1,
-    padding: '20px',
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px'
-  },
-  welcomeMessage: {
-    textAlign: 'center',
-    color: '#777',
-    marginTop: '40px',
-    fontSize: '17px'
-  },
-
-  message: {
-    maxWidth: '75%',
-    padding: '14px 18px',
-    borderRadius: '12px',
-    boxShadow: '0 3px 6px rgba(0,0,0,0.1)'
-  },
-  messageSender: {
-    fontWeight: 'bold',
-    fontSize: '14px',
-    marginBottom: '6px'
-  },
-  messageText: {
-    fontSize: '15px',
-    lineHeight: '1.5'
-  },
-
-  controls: {
-    background: 'white',
-    padding: '18px',
-    textAlign: 'center',
-    borderTop: '1px solid #ddd'
-  },
-  instruction: {
-    color: '#555',
-    marginBottom: '10px'
-  },
-  recordButton: {
-    padding: '15px 35px',
-    border: 'none',
-    borderRadius: '30px',
-    color: 'white',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.15)' 
-  }
-};
 
 export default Interview;
