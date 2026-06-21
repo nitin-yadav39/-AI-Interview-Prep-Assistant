@@ -18,7 +18,8 @@ function Interview() {
   }, [messages]);
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    // Connect to host origin in production, or proxy endpoint in development
+    socketRef.current = io(window.location.origin);
     socketRef.current.emit('join-interview', { interviewId });
 
     socketRef.current.on('ai-response', (data) => {

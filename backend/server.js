@@ -10,7 +10,10 @@ const auth = require('./middleware/auth');
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
-dotenv.config();
+const path = require('path');
+const fs = require('fs');
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY?.trim();
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -418,6 +421,18 @@ Respond professionally as an interviewer. Ask relevant technical or behavioral q
     console.log('👤 User disconnected:', socket.id);
   });
 });
+
+// Serve static assets in production (if built frontend exists)
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
 
 // Start Server
 const PORT = process.env.PORT || 5000;

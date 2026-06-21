@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // Point to local backend for development, can be configured via environment variables
-  baseURL: 'http://localhost:5000/api',
+  // Point to relative path /api to work seamlessly in both local proxy dev and production build
+  baseURL: '/api',
 });
 
 // Request interceptor to add the JWT token to the Authorization header
